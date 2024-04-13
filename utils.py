@@ -93,5 +93,5 @@ def map_id_to_train_id(label_id):
 def initialize_wandb(args):
     wandb.init(
         project="Segformer-Augmentation",
-        config=args.__dict__()        
+        config=args.__dict__       
     )

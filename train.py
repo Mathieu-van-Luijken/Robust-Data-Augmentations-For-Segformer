@@ -3,7 +3,8 @@ This file needs to contain the main training loop. The training code should be e
 avoid any global variables.
 """
 import arguments
-import utils 
+import utils
+import wandb 
 
 from pathlib import Path
 from datetime import datetime 
@@ -36,15 +37,15 @@ def main(args):
     # visualize example images
     
     # define model
-    model = SegformerForSemanticSegmentation.from_pretrained(pretrained_model_name_or_path="nvidia/segformer-b2-finetuned-cityscapes-1024-1024")
+    model = SegformerForSemanticSegmentation.from_pretrained(pretrained_model_name_or_path="nvidia/segformer-b0-finetuned-cityscapes-512-1024")
     model.to(device=device)
     
 
     # define optimizer and loss function (don't forget to ignore class index 255)
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
 
-    loss = nn.CrossEntropyLoss(ignore_index=255, reduction='mean').to(device)
-    dice = Dice(num_classes=20, ignore_index=255, average=None)
+    criterion = nn.CrossEntropyLoss(ignore_index=255, reduction='mean').to(device)
+    # dice = Dice(num_classes=20, ignore_index=255, average=None)
     miou = MulticlassJaccardIndex(num_classes=20, ignore_index=255, average=None)
 
     loss_dict = {"Loss": [], "Dice": [], "Mean IoU": []}
@@ -52,7 +53,8 @@ def main(args):
     # training/validation loop
     for epoch in range(args.num_epochs):
         model.train()
-        for image, target in train_loader:
+        total_loss = 0.0
+        for i, (image, target) in enumerate(train_loader):
             image = image.to(device)
 
             target = target.long().squeeze(0).view(-1)
@@ -63,13 +65,21 @@ def main(args):
             upsampled_logits = F.interpolate(logits, size=(image.size(2), image.size(3)), mode='bilinear', align_corners=False)
             upsampled_logits = upsampled_logits.view(-1, upsampled_logits.size(1))
 
-            loss = loss(upsampled_logits, target)
+            # visualize(image)
+            # visualize(upsampled_logits)
+
+            loss = criterion(upsampled_logits, target)
             
             optimizer.zero_grad()
             loss.backward()
             optimizer.step
 
+            total_loss += loss.item()
+
             del image, target, logits, upsampled_logits, loss
+            break
+        mean_loss = total_loss/(i+1)
+        wandb.log({"loss": mean_loss})
         # Logging information 
 
         # Clearing cache
