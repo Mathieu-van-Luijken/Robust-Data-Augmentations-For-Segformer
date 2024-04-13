@@ -38,6 +38,7 @@ def main(args):
     # define model
     model = SegformerForSemanticSegmentation.from_pretrained(pretrained_model_name_or_path="nvidia/segformer-b2-finetuned-cityscapes-1024-1024")
     model.to(device=device)
+    
 
     # define optimizer and loss function (don't forget to ignore class index 255)
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
@@ -46,7 +47,7 @@ def main(args):
     dice = Dice(num_classes=20, ignore_index=255, average=None)
     miou = MulticlassJaccardIndex(num_classes=20, ignore_index=255, average=None)
 
-    loss_dict = {"Loss": loss, "Dice": dice, "Mean IoU": miou}
+    loss_dict = {"Loss": [], "Dice": [], "Mean IoU": []}
 
     # training/validation loop
     for epoch in range(args.num_epochs):
@@ -92,6 +93,8 @@ def main(args):
                 
                 dice_loss = dice(prediction, label).item().cpu()
                 miou_loss = miou(prediction, label).item().cpu()
+
+                
 
 
 
