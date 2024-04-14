@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime 
 
 from torchvision.datasets import Cityscapes
-from torchmetrics.classification import MulticlassJaccardIndex
+from torchmetrics.classification import MulticlassJaccardIndex, MulticlassF1Score
 from torchmetrics import Dice
 from transformers import SegformerForSemanticSegmentation, SegformerConfig
 
@@ -45,8 +45,8 @@ def main(args):
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
 
     criterion = nn.CrossEntropyLoss(ignore_index=255, reduction='mean').to(device)
-    # dice = Dice(num_classes=20, ignore_index=255, average=None)
-    miou = MulticlassJaccardIndex(num_classes=20, ignore_index=255, average=None)
+    dice = MulticlassF1Score(num_classes=19, ignore_index=255).to(device)
+    miou = MulticlassJaccardIndex(num_classes=19, ignore_index=255, average='macro').to(device)
 
     loss_dict = {"Loss": [], "Dice": [], "Mean IoU": []}
 
@@ -77,7 +77,6 @@ def main(args):
             total_loss += loss.item()
 
             del image, target, logits, upsampled_logits, loss
-            break
         mean_loss = total_loss/(i+1)
         wandb.log({"loss": mean_loss})
         # Logging information 
@@ -86,14 +85,17 @@ def main(args):
         torch.cuda.empty_cache()
 
         # Training validation
-        with torch.no_grad:
+        with torch.no_grad():
             model.eval()
-            for image, label in val_loader:
+            val_dice = 0.0
+            val_miou = 0.0
+    
+            for j, (image, label) in enumerate(val_loader):
                 image = image.to(device)
 
-                label = target.long().squeeze(0).view(-1)
-                label = utils.map_id_to_train_id(target) 
-                label = target.to(device)
+                label = label.long().squeeze(0).view(-1)
+                label = utils.map_id_to_train_id(label) 
+                label = label.to(device)
 
                 logits = model(image).logits
                 upsampled_logits = F.interpolate(logits, size=(image.size(2), image.size(3)), mode='bilinear', align_corners=False)
@@ -101,24 +103,25 @@ def main(args):
 
                 prediction  = torch.argmax(input=upsampled_logits, dim=1).to(device)
                 
-                dice_loss = dice(prediction, label).item().cpu()
-                miou_loss = miou(prediction, label).item().cpu()
+                val_dice += dice(upsampled_logits, label).item()
+                val_miou += miou(upsampled_logits, label).item()
 
-                
+                del image, label, logits, upsampled_logits
+            
+            val_dice = val_dice/(j+1)
+            val_miou = val_miou/(j+1)
+            wandb.log({"Dice": val_dice, "Mean IoU": val_miou})
 
-
-
-
-
-
-
-    torch.cuda.empty_cache()        
+        torch.cuda.empty_cache()        
 
     # save model
     save_model(args, model)
 
+    current_time = datetime.now().strftime("%H:%M:%S")
+    print(f"Training done at: {current_time}")
+
     # visualize some results
-    pass
+    
 
 def save_model(args, model):
     results_dir = Path("results")
@@ -140,5 +143,7 @@ if __name__ == "__main__":
         device = 'cuda'
     else:
         device = 'cpu'
-
+    
+    current_time = datetime.now().strftime("%H:%M:%S")
+    print(f"Training starting at: {current_time}")
     main(args)
