@@ -13,10 +13,12 @@ from torchvision.datasets import Cityscapes
 from torchmetrics.classification import MulticlassJaccardIndex, MulticlassF1Score
 from torchmetrics import Dice
 from transformers import SegformerForSemanticSegmentation, SegformerConfig
+import torchmetrics.functional as metrics
 
 
 from dataloader import *
 from model import Model
+from visualization import visualize_tensor
 
 
 def main(args):
@@ -32,12 +34,12 @@ def main(args):
 
     # data loading
     dataloader = CityscapesDataLoader()
-    train_loader, val_loader = dataloader.load_data(args=args)
+    train_loader, val_loader = dataloader.load_train_data(args=args)
 
     # visualize example images
     
     # define model
-    model = SegformerForSemanticSegmentation.from_pretrained(pretrained_model_name_or_path="nvidia/segformer-b0-finetuned-cityscapes-512-1024")
+    model = SegformerForSemanticSegmentation.from_pretrained("nvidia/segformer-b2-finetuned-cityscapes-1024-1024")
     model.to(device=device)
     
 
@@ -48,25 +50,23 @@ def main(args):
     dice = MulticlassF1Score(num_classes=19, ignore_index=255).to(device)
     miou = MulticlassJaccardIndex(num_classes=19, ignore_index=255, average='macro').to(device)
 
-    loss_dict = {"Loss": [], "Dice": [], "Mean IoU": []}
+    wandb.log({'Criterion settings':criterion, "Dice settings": dice, "Miou settings": miou })
 
     # training/validation loop
     for epoch in range(args.num_epochs):
         model.train()
         total_loss = 0.0
         for i, (image, target) in enumerate(train_loader):
+            break
             image = image.to(device)
 
-            target = target.long().squeeze(0).view(-1)
+            target = target.long().view(args.batch_size, -1)
             target = utils.map_id_to_train_id(target) 
             target = target.to(device)
 
             logits = model(image).logits
             upsampled_logits = F.interpolate(logits, size=(image.size(2), image.size(3)), mode='bilinear', align_corners=False)
-            upsampled_logits = upsampled_logits.view(-1, upsampled_logits.size(1))
-
-            # visualize(image)
-            # visualize(upsampled_logits)
+            upsampled_logits = upsampled_logits.view(args.batch_size, upsampled_logits.size(1), -1)
 
             loss = criterion(upsampled_logits, target)
             
@@ -75,10 +75,9 @@ def main(args):
             optimizer.step
 
             total_loss += loss.item()
-
+            
             del image, target, logits, upsampled_logits, loss
         mean_loss = total_loss/(i+1)
-        wandb.log({"loss": mean_loss})
         # Logging information 
 
         # Clearing cache
@@ -91,27 +90,27 @@ def main(args):
             val_miou = 0.0
     
             for j, (image, label) in enumerate(val_loader):
+                break
                 image = image.to(device)
 
-                label = label.long().squeeze(0).view(-1)
+                label = label.long()
                 label = utils.map_id_to_train_id(label) 
                 label = label.to(device)
 
                 logits = model(image).logits
-                upsampled_logits = F.interpolate(logits, size=(image.size(2), image.size(3)), mode='bilinear', align_corners=False)
-                upsampled_logits = upsampled_logits.view(-1, upsampled_logits.size(1))
+                upsampled_logits = F.interpolate(logits, size=(1024,1024), mode='bilinear', align_corners=False)
 
                 prediction  = torch.argmax(input=upsampled_logits, dim=1).to(device)
-                
-                val_dice += dice(upsampled_logits, label).item()
-                val_miou += miou(upsampled_logits, label).item()
+
+                val_dice += dice(prediction, label.squeeze(1)).item()
+                val_miou += miou(prediction, label.squeeze(1)).item()
 
                 del image, label, logits, upsampled_logits
             
             val_dice = val_dice/(j+1)
             val_miou = val_miou/(j+1)
-            wandb.log({"Dice": val_dice, "Mean IoU": val_miou})
-
+            wandb.log({"Dice": val_dice, "Mean IoU": val_miou, "Loss": mean_loss})
+        break
         torch.cuda.empty_cache()        
 
     # save model
@@ -128,9 +127,9 @@ def save_model(args, model):
     if not results_dir.exists():
         results_dir.mkdir()
 
-    date = datetime.now().strftime("%d-%H%M")
+    date = datetime.now().strftime("%d-%H%M%S")
 
-    torch.save(model.state_dict(), Path(f"results\{args.augmenter} {date}.pt"))
+    torch.save({"model_state_dict": model.state_dict()}, Path(f"results\{args.augmenter}-{date}.pt"))
     
 
 
