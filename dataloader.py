@@ -25,16 +25,14 @@ class CityscapesDataLoader():
                                     transforms.Resize((1024,1024))])(image)
 
         target = transforms.Compose([transforms.PILToTensor(),
-                                     transforms.Resize((1024,1024))])(target)       
+                                     ])(target)       
         return image, target
     
     def image_to_tensor_test(self, image, target):
         image = transforms.Compose([transforms.PILToTensor(),
-                                    transforms.ConvertImageDtype(torch.float32),])(image)
+                                    transforms.ConvertImageDtype(torch.float32), ])(image)
 
-        target = transforms.Compose([transforms.PILToTensor(),
-                                     transforms.Resize((1024,512)), 
-                                     transforms.CenterCrop((512,512))])(target)       
+        target = transforms.Compose([transforms.PILToTensor()])(target)       
         return image, target
         
 

@@ -39,14 +39,14 @@ def main(args):
     # visualize example images
     
     # define model
-    model = SegformerForSemanticSegmentation.from_pretrained("nvidia/segformer-b2-finetuned-cityscapes-1024-1024")
+    model = Model()
     model.to(device=device)
     
 
     # define optimizer and loss function (don't forget to ignore class index 255)
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
 
-    criterion = nn.CrossEntropyLoss(ignore_index=255, reduction='mean').to(device)
+    criterion = nn.CrossEntropyLoss(ignore_index=255, reduction='mean').to(device) 
     dice = MulticlassF1Score(num_classes=19, ignore_index=255).to(device)
     miou = MulticlassJaccardIndex(num_classes=19, ignore_index=255, average='macro').to(device)
 
@@ -57,18 +57,17 @@ def main(args):
         model.train()
         total_loss = 0.0
         for i, (image, target) in enumerate(train_loader):
-            break
             image = image.to(device)
 
             target = target.long().view(args.batch_size, -1)
             target = utils.map_id_to_train_id(target) 
             target = target.to(device)
 
-            logits = model(image).logits
-            upsampled_logits = F.interpolate(logits, size=(image.size(2), image.size(3)), mode='bilinear', align_corners=False)
-            upsampled_logits = upsampled_logits.view(args.batch_size, upsampled_logits.size(1), -1)
+            logits = model(image)
+            upsampled_logits =  F.interpolate(logits, size=(1024, 2048), mode='bilinear', align_corners=False)
+            flat_upsampled_logits = upsampled_logits.view(args.batch_size, upsampled_logits.size(1), -1)
 
-            loss = criterion(upsampled_logits, target)
+            loss = criterion(flat_upsampled_logits, target)
             
             optimizer.zero_grad()
             loss.backward()
@@ -77,7 +76,7 @@ def main(args):
             total_loss += loss.item()
             
             del image, target, logits, upsampled_logits, loss
-        mean_loss = total_loss/(i+1)
+        mean_loss = total_loss/len(train_loader)
         # Logging information 
 
         # Clearing cache
@@ -90,15 +89,14 @@ def main(args):
             val_miou = 0.0
     
             for j, (image, label) in enumerate(val_loader):
-                break
                 image = image.to(device)
 
                 label = label.long()
                 label = utils.map_id_to_train_id(label) 
                 label = label.to(device)
 
-                logits = model(image).logits
-                upsampled_logits = F.interpolate(logits, size=(1024,1024), mode='bilinear', align_corners=False)
+                logits = model(image)
+                upsampled_logits = F.interpolate(logits, size=(1024,2048), mode='bilinear', align_corners=False)
 
                 prediction  = torch.argmax(input=upsampled_logits, dim=1).to(device)
 
@@ -106,13 +104,14 @@ def main(args):
                 val_miou += miou(prediction, label.squeeze(1)).item()
 
                 del image, label, logits, upsampled_logits
+    
             
-            val_dice = val_dice/(j+1)
-            val_miou = val_miou/(j+1)
+            val_dice = val_dice/len(val_loader)
+            val_miou = val_miou/len(val_loader)
             wandb.log({"Dice": val_dice, "Mean IoU": val_miou, "Loss": mean_loss})
-        break
+        
         torch.cuda.empty_cache()        
-
+        
     # save model
     save_model(args, model)
 
@@ -128,8 +127,8 @@ def save_model(args, model):
         results_dir.mkdir()
 
     date = datetime.now().strftime("%d-%H%M%S")
-
-    torch.save({"model_state_dict": model.state_dict()}, Path(f"results\{args.augmenter}-{date}.pt"))
+    # transfer_state_dict = {f"{key[15:]}": value for key, value in model.state_dict().items()}
+    torch.save(model.state_dict(), Path(f"results\{args.augmenter}-{date}.pth"))
     
 
 
