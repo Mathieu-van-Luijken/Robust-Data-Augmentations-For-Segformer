@@ -100,6 +100,9 @@ def main(args):
 
                 prediction  = torch.argmax(input=upsampled_logits, dim=1).to(device)
 
+                # visualize_tensor(label[0].squeeze(0))
+                # visualize_tensor(prediction[0].squeeze(0))
+
                 val_dice += dice(prediction, label.squeeze(1)).item()
                 val_miou += miou(prediction, label.squeeze(1)).item()
 

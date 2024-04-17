@@ -22,7 +22,7 @@ class CityscapesDataLoader():
     def image_to_tensor(self, image, target):
         image = transforms.Compose([transforms.PILToTensor(),
                                     transforms.ConvertImageDtype(torch.float32),
-                                    transforms.Resize((1024,1024))])(image)
+                                    transforms.Resize((1024,2048))])(image)
 
         target = transforms.Compose([transforms.PILToTensor(),
                                      ])(target)       
