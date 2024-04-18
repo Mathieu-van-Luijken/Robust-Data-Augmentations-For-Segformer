@@ -112,6 +112,9 @@ def main(args):
             val_dice = val_dice/len(val_loader)
             val_miou = val_miou/len(val_loader)
             wandb.log({"Dice": val_dice, "Mean IoU": val_miou, "Loss": mean_loss})
+        print(f"Epoch {epoch}: \n"
+              f"Current Validation Dice: {val_dice} \n"
+              f"Current Validation mIoU: {val_miou}")
         
         torch.cuda.empty_cache()        
         
@@ -119,7 +122,7 @@ def main(args):
     save_model(args, model)
 
     current_time = datetime.now().strftime("%H:%M:%S")
-    print(f"Training done at: {current_time}")
+    print(f"Training done at: {current_time} with augmentation {args.augmentation}")
 
     # visualize some results
     
@@ -130,8 +133,7 @@ def save_model(args, model):
         results_dir.mkdir()
 
     date = datetime.now().strftime("%d-%H%M%S")
-    # transfer_state_dict = {f"{key[15:]}": value for key, value in model.state_dict().items()}
-    torch.save(model.state_dict(), Path(f"results\{args.augmenter}-{date}.pth"))
+    torch.save(model.state_dict(), Path(f"results\{args.augmentation}-{date}.pth"))
     
 
 
@@ -146,5 +148,5 @@ if __name__ == "__main__":
         device = 'cpu'
     
     current_time = datetime.now().strftime("%H:%M:%S")
-    print(f"Training starting at: {current_time}")
+    print(f"Training starting at: {current_time} with augmentation {args.augmentation}")
     main(args)

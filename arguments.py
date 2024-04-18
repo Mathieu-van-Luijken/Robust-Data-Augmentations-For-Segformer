@@ -10,5 +10,5 @@ def get_arg_parser():
     parser.add_argument("--seed", type=int, default=2504, help='the seed')
     parser.add_argument("--lr", type=float, default=1000000, help='The learning rate')
     parser.add_argument("--num_epochs", type=int, default=1, help="Number of epochs")
-    parser.add_argument("--augmenter", type=str, default='base', help="The data augmenter")
+    parser.add_argument("--augmentation", type=str, default='superpixel', help="The data augmenter")
     return parser

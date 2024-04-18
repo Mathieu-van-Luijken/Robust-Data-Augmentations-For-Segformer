@@ -10,7 +10,7 @@ import torch.nn.functional as F
 class Model(nn.Module):
     def __init__(self):
         super().__init__()
-        self.transfer_model = SegformerForSemanticSegmentation.from_pretrained("nvidia/mit-b3", num_labels=19)
+        self.transfer_model = SegformerForSemanticSegmentation.from_pretrained("nvidia/mit-b1", num_labels=19)
 
 
     def forward(self, inputs):

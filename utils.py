@@ -1,6 +1,10 @@
 from collections import namedtuple
 import torch
 import wandb
+import torch
+from torch.nn import functional as F
+import numpy as np
+from scipy.ndimage import zoom
 
 
 Label = namedtuple( 'Label' , [
@@ -95,3 +99,14 @@ def initialize_wandb(args):
         project="Segformer-Augmentation",
         config=args.__dict__       
     )
+
+def upsample(logits, method):
+    if method == "bilinear":
+        upsampled_logits = F.interpolate(logits, size=(512, 512), mode='bilinear', align_corners=False)
+    if method == "bicubic":
+        upsampled_logits = F.interpolate(logits, size=(512, 512), mode='bicubic', align_corners=False)
+    if method == "lanczos":
+        logits = logits.cpu()
+        upsampled_logits = zoom(logits, (1,1,4,4), order=3)
+        upsampled_logits = torch.tensor(upsampled_logits).cuda()
+    return upsampled_logits
