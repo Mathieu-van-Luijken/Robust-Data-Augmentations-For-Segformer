@@ -8,7 +8,7 @@ def get_arg_parser():
     parser.add_argument("--num_workers", type=int, default=2, help='')
     parser.add_argument("--random_seed", type=bool, default=False, help='False if a seed is to be set')
     parser.add_argument("--seed", type=int, default=2504, help='the seed')
-    parser.add_argument("--lr", type=float, default=1000000, help='The learning rate')
-    parser.add_argument("--num_epochs", type=int, default=1, help="Number of epochs")
-    parser.add_argument("--augmentation", type=str, default='superpixel', help="The data augmenter")
+    parser.add_argument("--lr", type=float, default=6e-5, help='The learning rate')
+    parser.add_argument("--num_epochs", type=int, default=25, help="Number of epochs")
+    parser.add_argument("--augmentation", type=str, default='basic', help="The data augmenter")
     return parser

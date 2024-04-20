@@ -18,7 +18,7 @@ import torchmetrics.functional as metrics
 
 from dataloader import *
 from model import Model
-from visualization import visualize_tensor
+from visualization import *
 
 
 def main(args):
@@ -58,7 +58,7 @@ def main(args):
         total_loss = 0.0
         for i, (image, target) in enumerate(train_loader):
             image = image.to(device)
-
+            
             target = target.long().view(args.batch_size, -1)
             target = utils.map_id_to_train_id(target) 
             target = target.to(device)

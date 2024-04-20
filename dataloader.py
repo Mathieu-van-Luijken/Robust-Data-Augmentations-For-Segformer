@@ -15,6 +15,10 @@ from PIL import Image
 
 import numpy as np
 
+from visualization import *
+
+
+
 class CityscapesDataLoader():
     def __init__(self):
         self.seed = 2504
@@ -47,6 +51,7 @@ class CityscapesDataLoader():
         image = transform(image)
         random.seed(self.seed)
         target = transform(target)
+        
         return image, target
     
 
@@ -118,6 +123,7 @@ class CityscapesDataLoader():
         combined_image[mask==1] = image_np[mask==1]
         combined_image[inverted_mask==1] = image2_np[inverted_mask==1]
 
+
         combined_target = np.zeros_like(target_np)
         combined_target[mask==1] = target_np[mask==1]
         combined_target[inverted_mask==1] = target2_np[inverted_mask==1]
@@ -126,9 +132,11 @@ class CityscapesDataLoader():
         blended_image_pil = Image.fromarray(combined_image)
         blended_target_pil = Image.fromarray(combined_target)
 
+
         transform = transforms.Compose([transforms.PILToTensor(),
                             transforms.ConvertImageDtype(torch.float32)])
         
+
         image = transform(blended_image_pil)
         target = transform(blended_target_pil)
 
