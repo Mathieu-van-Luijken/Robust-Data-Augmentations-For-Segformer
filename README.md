@@ -40,6 +40,6 @@ Here's a brief overview of the files you'll find in this repository:
 
 ### Authors
 
-- T.J.M. Jaspers
-- C.H.B. Claessens
-- C.H.J. Kusters
+- Mathieu van Luijken 
+- m.f.a.c.v.luijken@student.tue.nl
+  
