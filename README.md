@@ -1,4 +1,4 @@
-# Final Assignment
+# Project
 
 This repository contains the code for the Robust Data Augmentations for Segformer paper for the TU/e course on Neural Networks for Computer vision.
 The code makes use of different data augmentations and upscaling methods to increase robustness in a pretrained segformer model. 
