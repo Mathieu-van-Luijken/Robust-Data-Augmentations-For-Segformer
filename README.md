@@ -12,8 +12,8 @@ https://github.com/vnmusat/multi-weather-city?tab=readme-ov-file
 ### Dependencies
 
 - argparse
-- torch
-- torchvision
+- torch==2.1.0 
+- torchvision==0.16.0
 - torchmetrics
 - transformers
 - numpy
@@ -23,21 +23,8 @@ https://github.com/vnmusat/multi-weather-city?tab=readme-ov-file
 - datetime
 - wandb
 - json
+
   
-### Installing
-
-To get started with this project, you need to clone the repository to Snellius or your local machine. You can do this by running the following command in your terminal:
-
-```bash
-git clone https://github.com/5LSM0/FinalAssignment.git
-```
-
-After cloning the repository, navigate to the project directory:
-
-```bash
-cd FinalAssignment
-```
-
 ### File Descriptions
 
 Here's a brief overview of the files you'll find in this repository:
